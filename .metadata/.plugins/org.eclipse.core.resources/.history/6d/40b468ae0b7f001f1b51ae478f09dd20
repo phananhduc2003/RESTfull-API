@@ -1,0 +1,84 @@
+package com.in28minutes.rest.webservices.restful_web_services.user;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import com.in28minutes.rest.webservices.restful_web_services.jpa.UserRepository;
+
+import jakarta.validation.Valid;
+
+@RestController //dung` de xuy ly cac yeu cau http tra ve JSON hoac XML
+public class UserJpaResource {
+	
+	private UserDaoService service;
+	
+	private UserRepository repository;
+	
+	public UserJpaResource(UserDaoService service, UserRepository repository) {
+		super();
+		this.service = service;
+		this.repository = repository;
+	}
+	
+	//Get /user
+	@GetMapping("/jpa/users")
+	public List<User> retrieveAllUsers(){
+		return repository.findAll();
+	}
+	
+	@GetMapping("/jpa/users/{id}/posts")
+	public List<Post> retrievePostForUser(@PathVariable int id){
+		
+		Optional<User> user = repository.findById(id);
+		// xu ly ngoai le khi khong tim thay id -> tra ve http 404
+		if(user.isEmpty())
+			throw new UserNotFoundException("id:" + id);
+		
+		return user.get().getPosts();
+		
+	}
+	
+	//Delete /user
+	@DeleteMapping("/jpa/users/{id}")
+	public void deleteUsers(@PathVariable int id){
+		repository.deleteById(id);
+	}
+	
+	
+	@GetMapping("/jpa/users/{id}")
+	public User retrieveUsers(@PathVariable int id){
+		Optional<User> user = repository.findById(id);
+		// xu ly ngoai le khi khong tim thay id -> tra ve http 404
+		if(user.isEmpty())
+			throw new UserNotFoundException("id:" + id);
+		
+		return user.get();
+	}
+	
+	
+	//POST /user
+	@PostMapping("/jpa/users")
+	public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+		User savedUser = repository.save(user);
+		// tao uri cho nguoi moi duoc tao them
+		URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+				.path("/id")
+				.buildAndExpand(savedUser.getId())
+				.toUri();
+		
+		return ResponseEntity.created(location).build();
+		
+	}
+	
+	
+}
